@@ -11,26 +11,26 @@ Use `QUIT;` for some procs (e.g., `PROC SQL`).
 ### DATA step (build/modify data)
 
 ```{sas}
-DATA library.dataset;       /* The step starts. */
-    SET library.source;     /* Brings in existing data (optional). */
-    INPUT var1 var2 $ var3; /* Defines variables for new data (optional). */
-    DATALINES;              /* Inlines data (optional). */
+DATA library.dataset;        * The step starts;
+    SET library.source;      * Brings in existing data (optional);
+    INPUT var1 var2 $ var3;  * Defines variables for new data (optional);
+    DATALINES;               * Inlines data (optional);
 value1 value2 value3
 ...
 ;
     /* Transformations, conditions, new variables*/
     IF var3 >= 60 THEN newvar = "Pass";
     ELSE newvar = "Fail";
-RUN;                        /* The step ends */
+RUN;                         * The step ends;
 ```
 
 ### PROC step (analyze/report)
 
 ```{sas}
-PROC procedure_name DATA=library.dataset;  * Step starts;
-    VAR var1 var2;                         * Select variables;
-    TITLE "Report title";                  * Optional title;
-RUN;                                       * Step ends;
+PROC procedure_name DATA = <library.dataset>;  * The step starts;
+    VAR var1 var2;                             * Selects variables;
+    TITLE "Report title";                      * Optional title;
+RUN;                                           * The step ends;
 ```
 
 LIBRARIES IN SAS ON-DEMAND FOR ACADEMICS (SODA)
@@ -38,15 +38,15 @@ LIBRARIES IN SAS ON-DEMAND FOR ACADEMICS (SODA)
 
 ### Default libraries
 
-- WORK: temporary; cleared on logout
-- MyLib: permanent; points to `/home/your-username/`
+- `Work`: temporary; cleared on logout
+- `MyLib`: permanent; points to `/home/<username>/`
 
 ### Custom libraries
 
 Creating a provate library pointing to a subfolder:
 
 ```{sas}
-LIBNAME NikDan "/home/your-username/NikDanMD";
+LIBNAME NikDan "/home/<username>/NikDanMD";
 ```
 
 ### Saving data
