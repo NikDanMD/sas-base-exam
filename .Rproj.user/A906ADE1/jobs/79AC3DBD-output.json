@@ -1,4 +1,0 @@
-[1,"==> quarto preview SAS Base exam cookbook.qmd --to default --no-watch-inputs --no-browse\n\n"]
-[1,"\nStarting python3 kernel..."]
-[1,"Traceback (most recent call last):\r\n  File \"C:\\Users\\Asus\\AppData\\Local\\Programs\\Quarto\\share\\jupyter\\jupyter.py\", line 21, in <module>\r\n    from notebook import notebook_execute, RestartKernel\r\n  File \"C:\\Users\\Asus\\AppData\\Local\\Programs\\Quarto\\share\\jupyter\\notebook.py\", line 15, in <module>\r\n    from yaml import safe_load as parse_string\r\nModuleNotFoundError: No module named 'yaml'\r\n"]
-[1,"Python 3 installation:\n  Version: 3.11.12\n  Path: C:/Users/Asus/AppData/Local/R/cache/R/reticulate/uv/cache/archive-v0/H5j4YSXvmaXTOIX-aK20E/Scripts/python.exe\n  Jupyter: (None)\n\nJupyter is not available in this Python installation.\nInstall with py -m pip install jupyter\n\n"]
