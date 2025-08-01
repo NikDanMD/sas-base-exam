@@ -5,8 +5,8 @@ Title: SAS BASE EXAM COOKBOOK
 ANATOMY OF A SAS PROGRAM
 ------------------------
 
-Each block (***step***) starts with `DATA` or `PROC` and ends with `RUN;`.
-Use `QUIT;` for some procs (e.g., `PROC SQL`).
+Each block (***step***) starts with DATA or PROC and ends with `RUN;`.
+Use `QUIT;` for some processes (e.g., PROC SQL).
 
 ### DATA step (build/modify data)
 
@@ -33,6 +33,8 @@ PROC procedure_name DATA = <library.dataset>;  * The step starts;
 RUN;                                           * The step ends;
 ```
 
+***
+
 LIBRARIES IN SAS ON-DEMAND FOR ACADEMICS (SODA)
 -----------------------------------------------
 
@@ -46,7 +48,7 @@ LIBRARIES IN SAS ON-DEMAND FOR ACADEMICS (SODA)
 Creating a provate library pointing to a subfolder:
 
 ```{sas}
-LIBNAME NikDan "/home/<username>/NikDanMD";
+LIBNAME <Library-Name> "/home/<username>/NikDanMD";
 ```
 
 ### Saving data
@@ -54,19 +56,19 @@ LIBNAME NikDan "/home/<username>/NikDanMD";
 Temporary (gone after logout):
 
 ```{sas}
-DATA employees;
+DATA <Library-Name>;
 ```
 
 Permanent (survives logout):
 
 ```{sas}
-DATA MyLib.employees;
+DATA MyLib.<Library-Name>;
 ```
 
 ***
 
-DATA STEPS (CREATING/MODIFYING DATASETS)
-----------------------------------------
+CREATING/MODIFYING DATASETS
+---------------------------
 
 ### Creating a dataset from scratch
 
@@ -81,7 +83,7 @@ DATA students;
 RUN;
 ```
 
-Variables are numeric by default; use $ for a character. Rows must match the order defined in INPUT.
+Variables are numeric by default; use `$` for a character. Rows must match the order defined in INPUT.
 
 ### Modifying an existing dataset
 
@@ -105,14 +107,14 @@ VIEWING DATASET CONTENT
 PROC PRINT: display a dataset
 
 ```{sas}
-PROC PRINT DATA=students;
+PROC PRINT DATA = students;
 RUN;
 ```
 
 ### Selecting variables
 
 ```{sas}
-PROC PRINT DATA=students;
+PROC PRINT DATA = students;
     VAR Name Score Result;
 RUN;
 ```
@@ -120,13 +122,14 @@ RUN;
 ### Adding a title
 
 ```{sas}
-PROC PRINT DATA=students;
+PROC PRINT DATA = students;
     VAR Name Score Result;
     TITLE "Exam results for students";
 RUN;
 ```
 
 Tips:
+
 - omitting VAR prints all variables
 - TITLE improves output clarity (optional)
 
@@ -136,24 +139,19 @@ FILTERING DATA
 --------------
 
 ```{sas}
-PROC PRINT DATA=sashelp.class; 
-RUN;
-```
-
-WHERE: filters dataset rows (like SQL's WHERE)
-
-```{sas}
 PROC PRINT DATA=sashelp.class;
 	WHERE Sex='F';
 RUN;
 ```
 
+WHERE: filters dataset rows.
+
 ### Combinations of the conditions
 
-- AND: both conditions true
-- OR: at least one condition true
-- NOT: exclude condition
-- IN: match any in a list (`WHERE Sex IN ('F','M');`)
+- AND: both conditions true.
+- OR: at least one condition true.
+- NOT: exclude condition.
+- IN: match any in a list (e.g., `WHERE Sex IN ('F','M');`).
 
 **NB!** Only one WHERE per PROC — combine conditions instead of stacking.
 
