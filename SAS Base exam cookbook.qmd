@@ -153,6 +153,6 @@ WHERE: filters dataset rows.
 - NOT: exclude condition.
 - IN: match any in a list (e.g., `WHERE Sex IN ('F','M');`).
 
-**NB!** Only one WHERE per PROC — combine conditions instead of stacking.
+**NB!** Only one WHERE per PROC! Combine conditions instead of stacking.
 
 ***
