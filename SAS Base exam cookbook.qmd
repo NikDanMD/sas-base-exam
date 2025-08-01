@@ -5,23 +5,23 @@ Title: SAS BASE EXAM COOKBOOK
 ANATOMY OF A SAS PROGRAM
 ------------------------
 
-**Rule:** Each block starts with `DATA` or `PROC` and ends with `RUN;`.
+Each block (***step***) starts with `DATA` or `PROC` and ends with `RUN;`.
 Use `QUIT;` for some procs (e.g., `PROC SQL`).
 
 ### DATA step (build/modify data)
 
 ```{sas}
-DATA library.dataset;       * Step starts;
-    SET library.source;     * Bring in existing data (optional);
-    INPUT var1 var2 $ var3; * Define variables for new data (optional);
-    DATALINES;              * Inline data (optional);
+DATA library.dataset;       /* The step starts. */
+    SET library.source;     /* Brings in existing data (optional). */
+    INPUT var1 var2 $ var3; /* Defines variables for new data (optional). */
+    DATALINES;              /* Inlines data (optional). */
 value1 value2 value3
 ...
 ;
-    * Transformations, conditions, new variables;
+    /* Transformations, conditions, new variables*/
     IF var3 >= 60 THEN newvar = "Pass";
     ELSE newvar = "Fail";
-RUN;                        * Step ends;
+RUN;                        /* The step ends */
 ```
 
 ### PROC step (analyze/report)
@@ -158,7 +158,3 @@ RUN;
 **NB!** Only one WHERE per PROC — combine conditions instead of stacking.
 
 ***
-
-DATA STEP LOGIC & CONDITIONAL PROCESSING
-----------------------------------------
-
