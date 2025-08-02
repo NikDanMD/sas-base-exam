@@ -273,33 +273,7 @@ RUN;
 DATA STEP
 ---------
 
-### Key definitions
-
-DATA Step -  a unique procedural language created for SAS (and is the backbone of it) to be used in core data manipulations.
-
-SET - reads observations from an existing SAS dataset into the DATA step.
-
-INFILE - reads raw data (e.g., a text or .csv file) into SAS.
-
-INPUT - defines the variables to be read when importing raw data.
-
-***Assignment statement*** (`=`) - creates or modifies variables.
-
-IF, THEN, ELSE - conditional statements to subset or assign values based on criteria.
-
-KEEP, DROP - select which variables to retain or remove in the output dataset.
-
-RENAME - changes the name of a variable in the output dataset.
-
-MERGE - combines datasets **horizontally** (by matching key variables).
-
-***Concatenation*** (SET with multiple datasets) - combines datasets **vertically** (stacking rows).
-
-$ - marks a character variable.
-
-FIRSTOBS = 2 - skips the header row (1) from reading, because it usually contains ***headers*** (column names), which you don’t want as data.
-
-DSD (delimiter-sensitive data) - makes SAS to handle comma-separated data like a proper CSV parser — understanding commas, quotes, and missing values correctly.
+***DATA Step*** -  a unique procedural language created for SAS (and is actually the backbone of it) to be used in core data manipulations.
 
 ### DATA Step loop agorithm
 
@@ -328,9 +302,9 @@ Understanding this loop:
 - Explains why order matters in the DATA step.
 - Makes the DATA step feel less like “just code” and more like a data pipeline.
 
-### Reading data
+### Creating a new dataset (DATA + SET)
 
-From an existing SAS dataset:
+Creates a new dataset by reading from an existing one.
 
 ```{sas}
 DATA work.copy;
@@ -338,23 +312,137 @@ DATA work.copy;
 RUN;
 ```
 
-From a raw text/.csv file:
+Creates `work.copy` as a duplicate of `sashelp.class`.
+
+Exam trap: If you don’t specify a library, the dataset goes to WORK (temporary).
+
+### Reading raw data (INFILE + INPUT)
+
+Reads data from an external file (e.g., .csv, .txt).
 
 ```{sas}
 DATA mydata;
-    INFILE "/home/<username>/myfile.csv" DSD FIRSTOBS=2;
+    INFILE "/home/user/myfile.csv" DSD FIRSTOBS = 2;
     INPUT name $ age height weight;
 RUN;
 ```
 
-### Creating a new variable
+DSD ("delimiter-sensitive data") - SAS reads the file like a proper CSV parser (understanding commas, quotes, and missing values correctly).
 
+FIRSTOBS = 2 - skips header row.
 
+$ - marks character variable (placed just after it).
 
+Exam trap: Forgetting DSD may split values with commas (e.g., "Smith, Jr.").
 
+### Creating new variables (assignment)
 
+Adds calculated or derived variables.
 
+```{sas}
+DATA work.bmi_data;
+    SET sashelp.class;
+    bmi = (weight / (height * height)) * 703;
+RUN;
+```
 
+Adds a new variable `bmi` to the dataset.
+
+Exam trap: Calculations are done row by row, not on whole columns.
+
+### Conditional logic (IF-THEN / ELSE)
+
+Assigns values based on conditions.
+
+```{sas}
+DATA work.groups;
+    SET sashelp.class;
+    IF age < 13 THEN group = "Child";
+    ELSE group = "Teen";
+RUN;
+```
+
+Creates a new variable `group` with two categories.
+
+Exam trap: IF inside a DATA step filters or assigns values; to filter rows, use it without ELSE.
+
+### Subsetting observations (IF)
+
+Keeps only rows that meet a condition.
+
+```{sas}
+DATA teens;
+    SET sashelp.class;
+    IF age >= 13;
+RUN;
+```
+
+Keeps only observations where age >= 13.
+
+Exam trap: Don’t confuse IF (row-level filter in DATA step) with WHERE (filter at read time).
+
+### Keeping, dropping, renaming variables (KEEP, DROP, RENAME)
+
+Controls which variables are in the output dataset.
+
+```{sas}
+DATA teens (KEEP = name age group RENAME = (name = student_name));
+    SET work.groups;
+    IF group = "Teen";
+RUN;
+```
+
+Keeps only `name`, `age`, `group` (renames `name` to `student_name`).
+
+Exam trap: KEEP, DROP, and RENAME as ***dataset options*** (in parentheses) can be used after DATA (for output dataset) or after SET (for input dataset); as ***statements*** (placed in a new line, without parentheses), they are applied to all datasets in the step.
+
+### Combining datasets vertically (concatenation)
+
+Stacks datasets with the same variables.
+
+```{sas}
+DATA combined;
+    SET dataset1 dataset2;
+RUN;
+```
+
+Appends `dataset2` rows to `dataset1`.
+
+Exam trap: If variable types don’t match across datasets, SAS fails.
+
+### Merging datasets by key (MERGE + BY)
+
+Combines datasets horizontally by matching a key.
+
+```{sas}
+PROC SORT DATA = dataset1; BY id; RUN;
+PROC SORT DATA = dataset2; BY id; RUN;
+
+DATA merged;
+    MERGE dataset1 (IN = a) dataset2 (IN = b);
+    BY id;
+    IF a AND b;        /* Keep only matches */
+RUN;
+```
+
+Performs an inner join on `id` (keeps only rows present in both datasets).
+
+Exam trap: Both datasets must be sorted by the BY variable before merging.
+
+### Temporary vs permanent datasets
+
+Library `work` - deleted at session end.
+
+Custom library (e.g., `mylib`) - permanent.
+
+```{sas}
+DATA mylib.final_data;
+    SET work.bmi_data;
+RUN;
+
+Exam trap: If you forget to assign a library, your dataset disappears when SAS closes.
+
+***
 
 
 
