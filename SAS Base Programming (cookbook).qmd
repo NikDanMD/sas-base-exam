@@ -1,0 +1,368 @@
+---
+title: SAS 9.4 BASE PROGRAMMING - THE EXAM COOKBOOK
+---
+
+INTRODUCTION
+------------
+
+### SAS, and why it matters
+
+***SAS (Statistical Analysis System)*** has been a cornerstone of data analysis for over half a century. Unlike many programming languages that rise and fall in popularity, SAS has maintained a consistent, stable presence in industries where precision and compliance are non‑negotiable — particularly pharmaceutical research, clinical trials, and regulatory reporting.
+
+Strictly speaking, ***SAS*** itself is not just one programming language, but a comprehensive data management and analytics platform.
+
+Inside **SAS**, there are **multiple programming languages**:
+
+- DATA Step (for data manipulation)
+- PROC (to call procedures like PROC MEANS)
+- Macro (for automation and dynamic code)
+- SQL/FedSQL (relational queries)
+- DS2 (an object‑oriented data step extension)
+- IML (Interactive Matrix Language) (for advanced stats)
+- SCL (Screen Control Language) (for UI stuff)
+
+**SAS** has several modules but it is mainly divided into 3 sections: 
+
+- SAS Base = DATA Step + PROC
+- SAS Advanced 
+- SAS Statistics
+ 
+***SAS OnDemand for Academics (SODA)*** is a free web-based version of SAS allowing you to access SAS without requiring installation of SAS on your computer. The default integrated development environment (IDE) for SODA is ***SAS Studio***.
+
+### Anatomy of a SAS Base program
+
+Each block (***step***) starts with DATA or PROC and ends with `RUN;`.
+Use `QUIT;` for some processes (e.g., PROC SQL).
+
+```{sas}
+DATA library.dataset;        * The step starts;
+    SET library.source;      * Brings in existing data (optional);
+    INPUT var1 var2 $ var3;  * Defines variables for new data (optional);
+    DATALINES;               * Inlines data (optional);
+value1 value2 value3
+...
+;
+RUN;                         * The step ends;
+```
+
+```{sas}
+PROC <procedure_name> DATA = <library.dataset>;  * The step starts;
+    VAR var1 var2;                               * Selects variables;
+    TITLE "Report title";                        * Optional title;
+RUN;                                             * The step ends;
+```
+
+### Default SODA writable libraries and files
+
+- ***`work`*** - temporary: default location for new datasets if no library is specified
+- ***user-defined libraries*** (e.g., `mylib`): custom libraries assigned using LIBNAME to point to a chosen folder; persist as long as the folder exists, but need to be reassigned in each new session (unless included in `autoexec.sas`)
+- ***autoexec.sas***: a special SAS program that runs automatically each time SAS starts; it is typically used to assign libraries, set global options, load macros or other frequently used code  
+
+Exam tip: In the exam environment, you will likely need to reassign libraries manually — don’t rely on autoexec.sas.
+
+***
+
+PART A. ACCESS AND CREATE DATA STRUCTURES (20-25%)
+--------------------------------------------------
+
+## 1. Create temporary and permanent SAS data sets
+
+SAS data sets can be ***temporary*** (session‑only) or ***permanent*** (saved for later use).
+
+### Temporary data set
+
+If no library is specified, a data set is automatically stored as temporary in the `work` library. It is erased when the SAS session ends.
+
+```{sas}
+DATA class_temp;
+    SET sashelp.class;
+RUN;
+```
+
+### Permanent data set
+
+To keep a data set for future use, store it in a permanent library by assigning a library reference with LIBNAME.
+
+```{sas}
+LIBNAME mylib "/home/username/myfolder";    /* Assigns a permanent library `mylib`. */
+
+DATA mylib.class_perm;
+    SET sashelp.class;
+RUN;
+```
+
+Exam tip: Use a two‑level name: libref.dataset. The folder path must exist before you assign the library.
+
+### Viewing libraries and data sets
+
+To see all data sets inside a library:
+
+```{sas}
+PROC CONTENTS DATA = mylib._ALL_;
+RUN;
+```
+
+***
+
+## 2. Investigate SAS data libraries using base SAS utility procedures
+
+***SAS libraries***: the essential containers for storing and managing data sets.
+
+### Assigning a library using LIBNAME
+
+To access or create data sets in a specific directory (or server folder), use the LIBNAME statement to assign a library reference (`libref`).
+
+```{sas}
+LIBNAME examlib "/home/u64285960/examdata";    /* `examlib` is the libref (can be up to 8 characters). */
+```
+
+The quoted path must exist and be accessible.
+
+Use when you want to save or read permanent data sets — outside the volatile WORK library.
+
+### Viewing library contents with PROC CONTENTS
+
+To examine the structure of a library or its data sets, use PROC CONTENTS.
+
+To list **all data** sets in a library:
+
+```{sas}
+PROC CONTENTS DATA = examlib._ALL_ NODS;
+RUN;
+```
+
+_ALL_ shows all data sets in the library.
+
+NODS suppresses printing full variable details for each data set.
+
+To explore a **single data set**:
+
+```{sas}
+PROC CONTENTS DATA = examlib.heart_perm;
+RUN;
+```
+
+Shows variable names, types, lengths, labels, and creation/modification metadata.
+
+Very useful to understand the structure and metadata before processing the data set.
+
+***
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## 3. Access data
+
+• Access SAS data sets with the SET statement.
+• Use PROC IMPORT to access non-SAS data sources.
+
+    o Read delimited and Microsoft Excel (.xlsx) files with PROC IMPORT.
+    o Use PROC IMPORT statement options (OUT=, DBMS=, REPLACE)
+    o Use the GUESSINGROWS statement.
+    o Use the DELIMITER statement.
+
+•  Use the SAS/ACCESS XLSX engine to read a Microsoft Excel workbook.xlsx file.
+
+## 4. Combine SAS data sets
+
+•  Concatenate data sets.
+•  Merge data sets one-to-one.
+•  Merge data sets one-to-many.
+
+## 5. Create and manipulate SAS date values
+
+•  Explain how SAS stores date and time values.
+•  Use SAS informats to read common date and time expressions.
+•  Use SAS date and time formats to specify how the values are displayed.
+
+## 6. Control which observations and variables in a SAS data set are processed and output
+
+•  Use the WHERE and IF statements in the DATA step to select observations to be processed.
+•  Subset variables to be output by using the DROP and KEEP statements.
+•  Use the DROP= and KEEP= data set options to specify columns to be processed and/or output.
+
+***
+
+PART B. MANAGE DATA (35-40%)
+----------------------------
+
+## 7. Sort observations in a SAS data set
+
+• Use the SORT Procedure to re-order observations in place or output to a new dataset with the OUT= option.
+• Remove duplicate observations with the SORT Procedure.
+
+## 8. Conditionally execute SAS statements
+
+• Use IF-THEN/ELSE statements to process data conditionally.
+• Use DO and END statements to execute multiple statements conditionally.
+
+## 9. Use assignment statements in the DATA step
+
+• Create new variables and assign a value.
+• Assign a new value to an existing variable.
+• Assign the value of an expression to a variable.
+• Assign a constant date value to a variable.
+
+## 10. Modify variable attributes using options and statements in the DATA step
+
+• Change the names of variables by using the RENAME= data set option.
+• Use LABEL and FORMAT statements to modify attributes in a DATA step.
+• Define the length of a variable using the LENGTH statement.
+
+## 11.Accumulate sub-totals and totals using DATA step statements
+
+• Use the BY statement to aggregate by subgroups.
+• Use first. and last. processing to identify where groups begin and end.
+• Use the RETAIN and SUM statements.
+
+## 12. Use SAS functions to manipulate character data, numeric data, and SAS date values
+
+• Use SAS functions such as SCAN, SUBSTR, TRIM, COMPRESS, UPCASE, and LOWCASE to perform tasks such as the tasks shown below.
+
+    o Replace the contents of a character value.
+    o Remove unwanted characters from strings.
+    o Search a character value and extract a portion of the value.
+    o Convert a character value to upper or lowercase.
+
+• Use SAS numeric functions such as SUM, MEAN, RAND, SMALLEST, LARGEST, ROUND, and INT.
+• Create SAS date values by using the functions MDY, TODAY, DATE, and TIME.
+• Extract the month, year, and interval from a SAS date value by using the functions YEAR, QTR, MONTH, and DAY.
+• Perform calculations with date and datetime values and time intervals by using the functions INTCK, INTNX, and YRDIF.
+• Use variable lists to efficiently reference multiple variables (OF operator, :,-,--).
+
+## 13. Use SAS functions to convert character data to numeric and vice versa
+
+• Explain the automatic conversion that SAS uses to convert values between data types.
+• Use the INPUT function to explicitly convert character data values to numeric values.
+• Use the PUT function to explicitly convert numeric data values to character values.
+
+## 14. Process data using DO LOOPS
+
+• Explain how iterative DO loops function.
+• Use DO loops to eliminate redundant code and to perform repetitive calculations.
+• Use conditional DO loops.
+• Use nested DO loops.
+
+## 15. Restructure SAS data sets with PROC TRANSPOSE
+
+• Select variables to transpose with the VAR statement.
+• Rename transposed variables with the ID statement.
+• Process data within groups using the BY statement.
+• Use PROC TRANSPOSE options (OUT=, PREFIX= and NAME=).
+
+## 16. Use macro variables to simplify program maintenance
+
+• Create macro variables with the %LET statement.
+• Use macro variables within SAS programs.
+• Use the macro variable name dot delimiter (.)
+
+***
+
+PART C. ERROR HANDLING (15-20%)
+-------------------------------
+
+## 17. Identify and resolve programming logic errors
+
+• Use the PUTLOG Statement in the Data Step to help identify logic errors.
+• Use PUTLOG to write the value of a variable, formatted values, or to write values of all variables.
+• Use PUTLOG with Conditional logic.
+• Use temporary variables N and ERROR to debug a DATA step.
+
+## 18. Recognize and correct syntax errors
+
+• Identify the characteristics of SAS statements.
+• Define SAS syntax rules including the typical types of syntax errors such as misspelled keywords, unmatched quotation marks, missing semicolons, and invalid options.
+• Use the log to help diagnose syntax errors in a given program.
+
+***
+
+PART D. GENERATE REPORTS AND OUTPUT (15-20%)
+--------------------------------------------
+
+## 19. Generate list reports using the PRINT procedure
+
+• Modify the default behavior of PROC PRINT by adding statements and options such as
+
+    o use the VAR statement to select and order variables.
+    o calculate totals with a SUM statement.
+    o select observations with a WHERE statement.
+    o use the ID statement to identify observations.
+    o use the BY statement to process groups.
+    o use the NOOBS and LABEL options.
+
+## 20. Generate summary reports and frequency tables using base SAS procedures
+
+• Produce one-way and two-way frequency tables with the FREQ procedure.
+• Enhance frequency tables with options (NLEVELS, ORDER=).
+• Use PROC FREQ to validate data in a SAS data set.
+• Calculate summary statistics and multilevel summaries using the MEANS procedure.
+
+    o WAYS, CLASS, VAR, OUTPUT statements
+
+• Enhance summary tables with options.
+• Identify extreme and missing values with the UNIVARIATE procedure.
+
+## 21. Enhance reports using user-defined formats, titles, footnotes, and SAS System reporting options
+
+• Use PROC FORMAT to define custom formats.
+
+    o VALUE statement
+    o CNTLIN= option
+
+• Use the LABEL statement to define descriptive column headings.
+• Control the use of column headings with the LABEL and SPLIT=options in PROC PRINT output.
+
+## 22. Generate reports using ODS statements
+
+• Identify the Output Delivery System destinations.
+• Create HTML, PDF, RTF, XLSX, and PPTX files with ODS statements.
+• Use the STYLE=option to specify a style template.
+• Generate comma separated value (CSV) files with ODS statements.
+
+## 23. Export data
+
+• Create a simple raw data file by using the EXPORT procedure as an alternative to the DATA step.
+
+    o Control the export file format with common DBMS identifiers: (csv, jmp, tab, dlm).
+
+• Export data to Microsoft Excel using the SAS/ACCESS XLSX engine.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
