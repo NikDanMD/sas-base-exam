@@ -35,21 +35,21 @@ Each block (***step***) starts with DATA or PROC and ends with `RUN;`.
 Use `QUIT;` for some processes (e.g., PROC SQL).
 
 ```{sas}
-DATA library.dataset;        * The step starts;
-    SET library.source;      * Brings in existing data (optional);
-    INPUT var1 var2 $ var3;  * Defines variables for new data (optional);
-    DATALINES;               * Inlines data (optional);
+data library.dataset;        * The step starts;
+    set library.source;      * Brings in existing data (optional);
+    input var1 var2 $ var3;  * Defines variables for new data (optional);
+    datalines;               * Inlines data (optional);
 value1 value2 value3
 ...
 ;
-RUN;                         * The step ends;
+run;                         * The step ends;
 ```
 
 ```{sas}
-PROC <procedure_name> DATA = <library.dataset>;  * The step starts;
-    VAR var1 var2;                               * Selects variables;
-    TITLE "Report title";                        * Optional title;
-RUN;                                             * The step ends;
+proc <procedure_name> data = <library.dataset>;  * The step starts;
+    var var1 var2;                               * Selects variables;
+    title "Report title";                        * Optional title;
+run;                                             * The step ends;
 ```
 
 ### Default SODA writable libraries and files
@@ -74,9 +74,9 @@ SAS data sets can be ***temporary*** (session‑only) or ***permanent*** (saved 
 If no library is specified, a data set is automatically stored as temporary in the `work` library. It is erased when the SAS session ends.
 
 ```{sas}
-DATA class_temp;
-    SET sashelp.class;
-RUN;
+data class_temp;
+    set sashelp.class;
+run;
 ```
 
 ### Permanent data set
@@ -84,11 +84,11 @@ RUN;
 To keep a data set for future use, store it in a permanent library by assigning a library reference with LIBNAME.
 
 ```{sas}
-LIBNAME mylib "/home/username/myfolder";    /* Assigns a permanent library `mylib`. */
+libname mylib "/home/username/myfolder";    * Assigns a permanent library `mylib`;
 
-DATA mylib.class_perm;
-    SET sashelp.class;
-RUN;
+data mylib.class_perm;
+    set sashelp.class;
+run;
 ```
 
 Exam tip: Use a two‑level name: libref.dataset. The folder path must exist before you assign the library.
@@ -98,8 +98,8 @@ Exam tip: Use a two‑level name: libref.dataset. The folder path must exist bef
 To see all data sets inside a library:
 
 ```{sas}
-PROC CONTENTS DATA = mylib._ALL_;
-RUN;
+proc contents data = mylib._all_;
+run;
 ```
 
 ***
@@ -113,7 +113,7 @@ RUN;
 To access or create data sets in a specific directory (or server folder), use the LIBNAME statement to assign a library reference (`libref`).
 
 ```{sas}
-LIBNAME examlib "/home/u64285960/examdata";    /* `examlib` is the libref (can be up to 8 characters). */
+libname examlib "/home/u64285960/examdata";    * `examlib` is the libref (can be up to 8 characters);
 ```
 
 The quoted path must exist and be accessible.
@@ -127,8 +127,8 @@ To examine the structure of a library or its data sets, use PROC CONTENTS.
 To list **all data** sets in a library:
 
 ```{sas}
-PROC CONTENTS DATA = examlib._ALL_ NODS;
-RUN;
+proc contents data = examlib._all_ nods;
+run;
 ```
 
 _ALL_ shows all data sets in the library.
@@ -138,13 +138,137 @@ NODS suppresses printing full variable details for each data set.
 To explore a **single data set**:
 
 ```{sas}
-PROC CONTENTS DATA = examlib.heart_perm;
-RUN;
+proc contents data = examlib.heart_perm;
+run;
 ```
 
 Shows variable names, types, lengths, labels, and creation/modification metadata.
 
 Very useful to understand the structure and metadata before processing the data set.
+
+***
+
+## 3. Access data
+
+This chapter covers how to bring both SAS and non-SAS data into your program: how to read permanent or temporary SAS datasets, and how to import external files like .xlsx or .csv.
+
+### Access SAS datasets with SET
+
+The SET statement reads observations from one or more SAS datasets into a DATA step.
+
+```{sas}
+data work.new_data;
+    set sashelp.class;
+run;
+```
+
+Commonly used for copying or modifying existing SAS data.
+
+### Importing non-SAS datasets with PROC IMPORT
+
+PROC IMPORT reads delimited text files, .csv, and .xlsx workbooks.
+
+```{sas}
+proc import datafile = "/home/user/data/students.xlsx"
+    out = work.students
+    dbms = xlsx
+    replace;
+run;
+```
+
+OUT = → name of the output SAS dataset.
+
+DBMS = → type of source file (.xlsx, .csv, .tab, etc.).
+
+REPLACE → overwrite if dataset already exists.
+
+### GUESSINGROWS option
+
+Tells SAS how many rows to scan to determine variable types/lengths.
+
+```{sas}
+proc import datafile = "/home/user/data/students.csv"
+    out = work.students
+    dbms = csv
+    replace;
+    guessingrows = 500;
+run;
+```
+
+Use when columns may have mixed content or the first few rows aren’t representative.
+
+### DELIMITER option
+
+Specifies the character separating values in a delimited text file.
+
+```{sas}
+proc import datafile = "/home/user/data/students.txt"
+    out = work.students
+    dbms = dlim
+    replace;
+    delimiter = '|';
+run;
+```
+
+### SAS/ACCESS XLSX engine
+
+Lets you treat an uploaded Excel workbook as a SAS library. Enables reading, writing, and listing sheets like SAS datasets.
+
+```{sas}
+libname myxlsx xlsx "/home/user/data/students.xlsx";
+
+proc contents data = myxlsx._all_;
+run;
+
+libname myxlsx clear;    *Detaches (unassigns) the library reference named myxlsx.;
+```
+
+***
+
+## 4. Combine SAS data sets
+
+In SAS, **combining datasets** allows you to bring together observations or variables from different sources. The main methods are:
+
+- ***concatenation*** – stacking datasets *vertically* (adding observations)
+
+- ***merging one-to-one*** – combining datasets *horizontally* (matching observations one-to-one)
+
+- ***merging one-to-many*** – combining datasets where one dataset contains multiple matches for a key in the other.
+
+### Concatenate datasets
+
+Datasets must have the same variable names and types for direct stacking; otherwise, SAS creates missing values for variables absent in some datasets.
+
+```{sas}
+data combined;
+    set sales_q1 sales_q2;
+run;   /* Adds all rows from SALES_Q1 followed by all rows from SALES_Q2 */
+```
+
+### Merge datasets one-to-one
+
+One-to-one merge combines datasets horizontally by matching rows in order (no BY statement) or by key variables (with BY statement). Both datasets must be sorted by the key if using BY.
+
+```{sas}
+data merged_1to1;
+    merge customers orders;
+    by customer_id;
+run;    /* Each CUSTOMER_ID from both datasets matched one-to-one */
+```
+
+### Merge data sets one-to-many
+
+One-to-many merge matches each row in one dataset with all matching rows in another. The “many” dataset has multiple rows per key, while the “one” dataset has only one.
+
+```{sas}
+proc sort data = customers; by customer_id; run;
+proc sort data = transactions; by customer_id; run;
+
+data merged_1toM;
+    merge customers transactions;
+    by customer_id;
+run;    /* Each CUSTOMER_ID in CUSTOMERS matched to all its TRANSACTIONS */
+```
 
 ***
 
@@ -169,23 +293,43 @@ Very useful to understand the structure and metadata before processing the data 
 
 
 
-## 3. Access data
 
-• Access SAS data sets with the SET statement.
-• Use PROC IMPORT to access non-SAS data sources.
 
-    o Read delimited and Microsoft Excel (.xlsx) files with PROC IMPORT.
-    o Use PROC IMPORT statement options (OUT=, DBMS=, REPLACE)
-    o Use the GUESSINGROWS statement.
-    o Use the DELIMITER statement.
 
-•  Use the SAS/ACCESS XLSX engine to read a Microsoft Excel workbook.xlsx file.
 
-## 4. Combine SAS data sets
 
-•  Concatenate data sets.
-•  Merge data sets one-to-one.
-•  Merge data sets one-to-many.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ## 5. Create and manipulate SAS date values
 
