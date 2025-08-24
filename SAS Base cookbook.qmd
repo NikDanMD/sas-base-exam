@@ -965,3 +965,83 @@ run;
 Used when we need numbers as labels, IDs, or part of strings.
 
 *** 
+
+## 14. Process data using DO loops
+
+***DO loops***: used to repeat one or more statements multiple times. They are essential for eliminating redundant code, performing repetitive calculations, and controlling the flow of execution.
+
+### DO (iterative loop)
+
+***Iterative DO loop***: repeats a block of code a fixed number of times: DO index = start TO stop BY increment; ... END;.
+
+```{sas}
+data squares;
+    do i = 1 to 5;
+        square = i * i;
+        output;
+    end;
+run;
+
+proc print data = squares noobs;
+run;
+```
+
+Used when the number of iterations is known in advance.
+
+### DO WHILE
+
+A conditional DO loop that executes while a condition is true. The condition is tested *before* each iteration.
+
+```{sas}
+data while_loop;
+    x = 1;
+    do while (x < 5);
+        y = x**2;
+        output;
+        x + 1;
+    end;
+run;
+```
+
+Used when loop should run only if condition is true initially.
+
+### DO UNTIL
+
+A conditional DO loop that executes until a condition becomes true.
+The condition is tested *after* each iteration.
+
+```{sas}
+data until_loop;
+    x = 1;
+    do until (x > 5);
+        y = x**2;
+        output;
+        x + 1;
+    end;
+run;
+```
+
+Guarantees at least one execution of the loop.
+
+### Nested DO loops
+
+***Nested DO loops***: when DO loops can be placed inside each other for multi-level repetition.
+
+```{sas}
+data multiplication;
+    do i = 1 to 3;
+        do j = 1 to 3;
+            product = i*j;
+            output;
+        end;
+    end;
+run;
+
+proc print data=multiplication noobs;
+run;
+```
+
+Useful for generating tables or multi-dimensional calculations.
+
+***
+
