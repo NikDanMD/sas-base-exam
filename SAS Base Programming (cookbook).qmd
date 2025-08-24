@@ -272,70 +272,218 @@ run;    /* Each CUSTOMER_ID in CUSTOMERS matched to all its TRANSACTIONS */
 
 ***
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ## 5. Create and manipulate SAS date values
 
-•  Explain how SAS stores date and time values.
-•  Use SAS informats to read common date and time expressions.
-•  Use SAS date and time formats to specify how the values are displayed.
+SAS stores dates/times as numbers (dates = days since 01JAN1960; times = seconds since midnight; datetimes = seconds since 01JAN1960 00:00:00). You’ll use literals, informats (INPUT), and formats/output (FORMAT) to read and display them correctly.
+
+### Understanding formats vs informats
+
+***Informat***: tells SAS how to read raw text into an internal value (used by INPUT). 
+
+***Format***: tells SAS how to display a stored value (used by FORMAT or in PROCs).
+
+Common SAS date/time formats and informats:
+
+- **`date9.`** - "15AUG1998" - classic ddMONyyyy form, 9 chars
+- `mmddyy10.`	- "08/15/1998" - US style with slashes, 10 chars
+- `ddmmyy10.`	- "15/08/1998" - day first (European style)
+- `worddate.`	- "August 15, 1998" - words, no leading zeros
+- **`time8.`** - "09:45:00"	- hours:minutes:seconds
+- `hhmm.` - "09:45" - hours and minutes only
+- **`datetime20.`** - "15AUG1998:09:45:00" - date + time, 20 chars
+- `dtmonyy.` - "Aug98" (with time if formatted) - abbrev. month + year
+- `dateampm.` - "15AUG1998:9:45:00 AM" - date/time with AM/PM
+
+💡 Exam tip: These names are permanent in SAS. Case doesn’t matter (`DATE9.` = `date9.`), but the period is required.
+
+```{sas}
+/* read raw date text with an informat */
+input birth_date date9.;
+
+/* display a stored date with a format */
+format birth_date worddate.;
+```
+
+Always pair the right informat for reading and a suitable format for display.
+
+### How SAS stores date and time values
+
+Date/time/datetime are numeric internally; ***literals*** let you hard-code constants in your code.
+
+```{sas}
+data work.example;
+    start_date   = '01jan2025'd;               /* date literal */
+    opening_time = '12:30:00't;                /* time literal */
+    event_start  = '01jan2025:12:30:00'dt;     /* datetime literal */
+run;
+```
+
+Literals give stable, reproducible cutoffs and example data (vs NOW via functions).
+
+### Using SAS informats to read date/time expressions (input)
+
+Place **informats** on variables in INPUT statement so SAS interprets raw text correctly.
+
+```{sas}
+data work.example2;
+    input dob date9. appt time8. dt datetime20.;
+    format dob date9. appt time8. dt datetime20.;    /* output look */
+    datalines;
+01JAN2020 14:35:20 01JAN2020:14:35:20
+;
+run;
+```
+
+Without the right informat, dates/times remain character and you can’t do date math.
+
+### Using SAS formats to display date/time values (output)
+
+**Formats** change the appearance without changing the stored value.
+
+```{sas}
+data work.example3;
+    today = today();       /* numeric date (days since 1960) */
+    now   = datetime();    /* numeric datetime (seconds)     */
+    format today mmddyy10. now datetime20.;
+run;
+```
+
+Switch formats anytime to match reporting needs (e.g., DATE9., WORDDATE., DATEAMPM.).
+
+***
+
+## 6. Control which observations and variables are processed and output
+
+***PDV conveyor-belt model*** (one picture to remember):
+
+- Gate = WHERE (pre-PDV): rows admitted or blocked before they enter the workspace.
+- Workbench = DATA/SET + calculations: row is in memory; you compute.
+- Trash chute = `IF … THEN DELETE` / IF condition (post-PDV): drop the row after you’ve seen it.
+- Parts bins = `KEEP =`/`DROP =` on input (`set ds (keep = … drop = …)`): which columns are brought into the PDV.
+- Box sealer = KEEP/DROP statement or `KEEP =`/`DROP =` on output: which columns leave the step.
+
+**Four-question decision tree** (use before every DATA step):
+
+1) Which table(s) feed the step? → SET (or MERGE + BY).
+2) Row rule?
+    - Only existing columns? → WHERE (or `WHERE =`).
+    - Needs a computed flag from this step? → IF.
+3) Columns needed during processing? → KEEP=/DROP= on input.
+4) Columns to publish in output? → KEEP/DROP statement or KEEP=/DROP= on DATA target (pick one).
+
+Minimal templates (copy → tweak):
+
+- pre-filter + limit columns read (fast path):
+
+```{sas}
+data work.out (keep = vars_you_publish);
+    set lib.in (keep = cols_needed where = (your_where_condition));
+    /* compute here */
+run;
+```
+
+- computed condition (post-PDV IF):
+
+```{sas}
+data work.out;
+    set lib.in (keep = vars_needed);
+    flag = (/* expression */);
+    if flag;    /* or: if not flag then delete; */
+run;
+```
+
+- target one source (`WHERE =`) in a merge:
+
+```{sas}
+data work.out;
+    merge a (keep = ... where = (...))
+          b (keep = ... );
+    by id;
+    if /* row rule */;
+run;
+```
+
+### WHERE vs IF (quick rules)
+
+WHERE - pre-PDV; faster; usable in PROCs; cannot reference variables created later in the same step.
+
+IF - post-PDV; can use computed variables; works only in DATA steps.
+
+### KEEP/DROP vs `KEEP =`/`DROP =`
+
+KEEP/DROP statements → control output only (all inputs still available while computing).
+
+`KEEP =`/`DROP =` on input → reduces columns brought into PDV (can speed I/O).
+
+`KEEP =`/`DROP =` on output → limits columns saved at creation time.
+
+### `WHERE =` option (surgical filtering)
+
+Put `WHERE =` on a specific input in SET/MERGE to filter that source only.
+
+### Gotchas / smell tests
+
+WHERE can’t see variables created later in the same DATA step → use IF instead.
+
+PROCs use WHERE, not IF.
+
+“Variable not found” during compute → you probably dropped it on input (`KEEP =` too aggressive).
+
+Don’t mix KEEP and DROP for the same target — pick one.
+
+Prefer WHERE inside PROCs; use IF only when you must filter on computed values.
+
+Handy predicates you’ll reuse:
+
+```{sas}
+where upcase(sex) = 'F';
+where name like 'A%';             /* starts with A */
+where age between 12 and 15;      /* inclusive */
+where name ? 'nn';                /* contains substring */
+if missing (height) then delete;  /* drop rows with missing height */
+```
+
+***
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ## 6. Control which observations and variables in a SAS data set are processed and output
 
