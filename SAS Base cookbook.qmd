@@ -1,0 +1,967 @@
+---
+title: SAS 9.4 BASE PROGRAMMING - THE EXAM COOKBOOK
+---
+
+## Introduction
+
+### SAS, and why it matters
+
+***SAS (Statistical Analysis System)*** has been a cornerstone of data analysis for over half a century. Unlike many programming languages that rise and fall in popularity, SAS has maintained a consistent, stable presence in industries where precision and compliance are non‑negotiable — particularly pharmaceutical research, clinical trials, and regulatory reporting.
+
+Strictly speaking, ***SAS*** itself is not just one programming language, but a comprehensive data management and analytics platform.
+
+Inside **SAS**, there are **multiple programming languages**:
+
+- DATA Step (for data manipulation)
+- PROC (to call procedures like PROC MEANS)
+- Macro (for automation and dynamic code)
+- SQL/FedSQL (relational queries)
+- DS2 (an object‑oriented data step extension)
+- IML (Interactive Matrix Language) (for advanced stats)
+- SCL (Screen Control Language) (for UI stuff)
+
+**SAS** has several modules but it is mainly divided into 3 sections: 
+
+- SAS Base = DATA Step + PROC
+- SAS Advanced 
+- SAS Statistics
+ 
+***SAS OnDemand for Academics (SODA)*** is a free web-based version of SAS allowing you to access SAS without requiring installation of SAS on your computer. The default integrated development environment (IDE) for SODA is ***SAS Studio***.
+
+### Anatomy of a SAS Base program
+
+Each block (***step***) starts with DATA or PROC and ends with `RUN;`.
+Use `QUIT;` for some processes (e.g., PROC SQL).
+
+```{sas}
+data library.dataset;        * The step starts;
+    set library.source;      * Brings in existing data (optional);
+    input var1 var2 $ var3;  * Defines variables for new data (optional);
+    datalines;               * Inlines data (optional);
+value1 value2 value3
+...
+;
+run;                         * The step ends;
+```
+
+```{sas}
+proc <procedure_name> data = <library.dataset>;  * The step starts;
+    var var1 var2;                               * Selects variables;
+    title "Report title";                        * Optional title;
+run;                                             * The step ends;
+```
+
+### Default SODA writable libraries and files
+
+- ***`work`*** - temporary: default location for new datasets if no library is specified
+- ***user-defined libraries*** (e.g., `mylib`): custom libraries assigned using LIBNAME to point to a chosen folder; persist as long as the folder exists, but need to be reassigned in each new session (unless included in `autoexec.sas`)
+- ***autoexec.sas***: a special SAS program that runs automatically each time SAS starts; it is typically used to assign libraries, set global options, load macros or other frequently used code  
+
+Exam tip: In the exam environment, you will likely need to reassign libraries manually — don’t rely on autoexec.sas.
+
+***
+
+PART A. ACCESS AND CREATE DATA STRUCTURES (20-25%)
+--------------------------------------------------
+
+## 1. Create temporary and permanent SAS data sets
+
+This chapter shows how to build new SAS data sets, either temporary (stored in WORK, disappear after session) or permanent (stored in a library you assign).
+
+### DATA
+
+DATA: creates a new dataset.
+
+```{sas}
+data work.heart_temp;
+    set sashelp.heart;
+run;
+```
+
+data work.heart_temp; → Creates a dataset in the `work` (temporary library, i.e. deleted when session ends).
+set sashelp.heart; → Reads in the built-in dataset sashelp.heart.
+
+### LIBNAME
+
+LIBNAME: assigns a permanent library reference (***libref***) to a folder.
+
+```{sas}
+libname examlib "/home/u64285960/examdata";
+```
+
+libname examlib "<path>"; → Assigns a permanent library's name linked to the folder. This nickname (e.g., `examlib`) will be used in code to reference datasets inside that folder.
+
+### Permanent dataset
+
+***Permanent dataset***: saves data to a library for future sessions.
+
+```{sas}
+data examlib.heart_perm;
+    set sashelp.heart;
+run;
+```
+
+data examlib.heart_perm; → Creates a dataset in a permanent library. This dataset remains available next sessions.
+
+***
+
+## 2. Investigate SAS data libraries using base SAS utility procedures
+
+This chapter shows how to assign library references and explore their contents programmatically.
+
+### LIBNAME
+
+LIBNAME: assigns a permanent library reference (***libref***) to a folder.
+
+```{sas}
+libname studydat "/home/u64285960/myfiles/data/";
+```
+
+libname studydat "<path>"; → Assigns the folder as a library with nickname `studydat`. All datasets saved here will persist beyond the session.
+
+### PROC CONTENTS (all datasets)
+
+PROC CONTENTS: lists metadata about datasets in a library.
+
+```{sas}
+proc contents data = studydat._all_ nods;
+run;
+```
+
+proc contents → Displays metadata (variables, types, lengths, labels, etc.).
+data = studydat._all_ → Shows information about all datasets in the library `studydat`.
+nods → Suppresses detailed descriptor info for each dataset (gives just a summary list).
+
+### PROC CONTENTS (single dataset)
+
+```{sas}
+proc contents data = studydat.sheet1 out = work.q1_sales;
+run;
+```
+
+data = studydat.sheet1 → Selects the dataset `sheet1` from the library `studydat`.
+out = work.q1_sales → Saves metadata table into the dataset `q1_sales` in the temporary library `work`.
+
+***
+
+## 3. Access data
+
+This chapter shows how to bring data into SAS, either from existing SAS datasets or from external files such as .csv or .xlsx.
+
+### SET 
+
+SET: reads observations from an existing SAS dataset.
+
+```{sas}
+data work.class_copy;
+    set sashelp.class;
+run;
+```
+
+data work.class_copy; → creates a new dataset in `work`.
+set sashelp.class; → copies all rows and variables from built-in dataset `sashelp.class`.
+
+### PROC IMPORT
+
+PROC IMPORT: Reads external files into SAS.
+
+```{sas}
+proc import datafile = "/home/u64285960/birthweight.csv"
+    out = work.birth_csv
+    dbms = csv
+    replace;
+    guessingrows = 50;
+    delimiter = "|";
+run;
+```
+
+proc import datafile = "<path>"; → Specifies external file to import.
+out = work.birth_csv; → Name of SAS dataset to create.
+dbms = csv; → File type (.csv in this case).
+replace; → Overwrites if dataset already exists.
+guessingrows = 50; → Scans first 50 rows to detect variable types.
+delimiter = "|"; → defines the delimiter (here, pipe |).
+
+### XLSX
+
+***XLSX engine***: access Excel sheets as if they were datasets.
+
+```{sas}
+libname bwxls xlsx "/home/u64285960/birthweight.xlsx";
+
+proc contents data = bwxls._all_;
+run;
+```
+
+libname bwxls xlsx "<file>.xlsx"; → Assigns Excel file as library.
+proc contents data=bwxls._all_; → Lists all sheets in the Excel file.
+
+***
+
+## 4. Combine SAS data sets
+
+This chapter shows how to join data sets together. In SAS, **combining datasets** allows you to bring together observations or variables from different sources. The main methods are:
+
+- ***concatenation*** – stacking datasets *vertically* (adding observations)
+
+- ***merging one-to-one*** – combining datasets *horizontally* (matching observations one-to-one)
+
+- ***merging one-to-many*** – combining datasets where one dataset contains multiple matches for a key in the other.
+
+### Concatenation 
+
+Variables of the concatenated datasets must match by name and type; otherwise SAS creates new columns for mismatched variables.
+
+```{sas}
+data work.combined;
+    set work.q1_sales work.q2_sales;
+run;
+```
+
+set work.q1_sales work.q2_sales; → Concatenates, i.e. appends rows of q2_sales after q1_sales.
+
+### Merging one-to-one
+
+Matching observations across datasets by BY variable.
+
+```{sas}
+proc sort data = work.sales; 
+    by id; 
+run;
+
+proc sort data = work.returns; 
+    by id; 
+run;
+
+data work.merge_one2one;
+    merge work.sales work.returns;
+    by id;
+run;
+```
+
+proc sort → Datasets must be sorted BY the merge key (`id`).
+merge work.sales work.returns; → Combines rows BY matching `id`.
+
+### Merging one-to-many
+
+One record matches multiple in another dataset.
+
+```{sas}
+proc sort data = work.customers; 
+    by id; 
+run;
+
+proc sort data = work.orders; 
+    by id; 
+run;
+
+data work.merge_one2many;
+    by id;
+    if a and b;     /* keep only matches */
+run;
+```
+
+work.customers → One record per `id`.
+work.orders → Possibly many records per `id`.
+in = a / in = b → Temporary flags to check dataset source.
+if a and b; → Keeps only observations appearing in both datasets (***inner join***).
+
+***
+
+## 5. CREATE AND MANIPULATE SAS DATA VALUES
+
+SAS stores dates/times as numbers (dates = days since 01JAN1960; times = seconds since midnight; datetimes = seconds since 01JAN1960 00:00:00). You’ll use literals, informats (inputs), and formats (outputs) to read and display them correctly.
+
+***Informat***: tells SAS how to read raw text into an internal value (used by INPUT). 
+
+***Format***: tells SAS how to display a stored value (used by FORMAT or in PROCs).
+
+Common SAS date/time permanent **formats and informats**:
+
+- ***date9.*** - "15AUG1998" - classic ddMONyyyy form, 9 chars
+- ***mmddyy10.*** - "08/15/1998" - US style with slashes, 10 chars
+- ***ddmmyy10.*** - "15/08/1998" - day first (European style)
+- ***worddate.*** - "August 15, 1998" - words, no leading zeros
+- ***time8.*** - "09:45:00"	- hours:minutes:seconds
+- ***hhmm.*** - "09:45" - hours and minutes only
+- ***datetime20.*** - "15AUG1998:09:45:00" - date + time, 20 chars
+- ***dtmonyy.*** - "Aug98" (with time if formatted) - abbrev. month + year
+- ***dateampm.*** - "15AUG1998:9:45:00 AM" - date/time with AM/PM
+
+### Informats: read dates from raw data
+
+```{sas}
+data work.dates_in;
+    input visit_date mmddyy10.;
+    format visit_date date9.;
+    datalines;
+01/15/2020
+12/31/2021
+;
+run;
+```
+
+input visit_date mmddyy10.; → Reads values in mm/dd/yyyy format.
+format visit_date date9.; → Displays as 15JAN2020.
+
+### Formats: control how dates appear in output
+
+```{sas}
+proc print data=work.dates_in;
+    format visit_date worddate.;
+run;
+```
+
+format visit_date worddate.; → Shows as "January 15, 2020".
+
+Formats affect display only, not stored values.
+
+### Functions: create new date values
+
+```{sas}
+data work.date_funcs;
+    today = today();                  /* current date */
+    birthday = mdy(5, 20, 1990);      /* May 20, 1990 */
+run;
+```
+
+today() → Returns today’s date.
+mdy(<month>, <day>, <year>) → Constructs a date value.
+
+### Functions: extract parts of a date
+
+```{sas}
+data work.date_parts;
+    set work.date_funcs;
+    year = year(birthday);
+    month = month(birthday);
+    day = day(birthday);
+run;
+```
+
+year(<date>) → Extracts year.
+month(<date>) → Extracts month.
+day(<date>) → Extracts day.
+
+### Functions: calculate intervals
+
+```{sas}
+data work.date_diff;
+    start = '01JAN2020'd;
+    stop  = '01JAN2021'd;
+    years = yrdif(start, stop, 'actual');
+    months = intck('month', start, stop);
+    next_qtr = intnx('qtr', start, 1);
+    format start stop next_qtr date9.;
+run;
+```
+
+'01JAN2020'd → constant SAS date literal (for the date in DATE9. format).
+yrdif(start, stop, 'actual') → Difference in years.
+intck('month', …) → Counts months between dates.
+intnx('qtr', …, 1) → Advances date by 1 quarter.
+
+***
+
+## 6. Control which observations and variables in a SAS data set are processed and output
+
+This chapter explains how to select only the rows (observations) and columns (variables) you want, both while reading data and when writing output.
+
+### PDV conveyor-belt model
+
+- Gate = WHERE (pre-PDV): rows admitted or blocked before they enter the workspace.
+- Workbench = DATA/SET + calculations: row is in memory; you compute.
+- Trash chute = `IF … THEN DELETE` / IF condition (post-PDV): drop the row after you’ve seen it.
+- Parts bins = `KEEP =`/`DROP =` on input (`set ds (keep = … drop = …)`): which columns are brought into the PDV.
+- Box sealer = KEEP/DROP statement or `KEEP =`/`DROP =` on output: which columns leave the step.
+
+### WHERE
+
+WHERE: filters observations **before** they are read into the PDV.
+
+```{sas}
+data work.females;
+    set sashelp.class;
+    where sex = 'F';
+run;
+```
+
+where sex = 'F'; → Only female records are read into memory.
+
+More efficient for large datasets.
+
+WHERE can’t see variables created later in the same DATA step → use IF instead.
+
+Prefer WHERE inside PROCs; use IF only when you must filter on computed values.
+
+### IF
+
+IF: filters observations **after** they are read into the PDV.
+
+```{sas}
+data work.teens;
+    set sashelp.class;
+    if age >= 13;
+run;
+```
+
+if age >= 13; → Removes observations after they are loaded.
+
+Slightly less efficient than WHERE, but more flexible (can use computed variables).
+
+### KEEP 
+
+KEEP: Keeps only specific variables in output.
+
+```{sas}
+data work.short;
+    set sashelp.class;
+    keep name age sex;
+run;
+```
+
+keep name age sex; → Output dataset contains only these variables.
+
+### DROP
+
+DROP: Removes specific variables in output.
+
+```{sas}
+data work.noweight;
+    set sashelp.class;
+    drop weight height;
+run;
+```
+
+drop weight height; → These variables are excluded from output.
+
+### KEEP=/DROP=
+
+KEEP=/DROP= (dataset options): apply at read or write.
+
+Keep while reading:
+
+```{sas}
+data work.subset;
+    set sashelp.class (keep = name age);
+run;
+```
+
+Drop while writing:
+
+```{sas}
+data work.subset2 (drop = height weight); 
+    set sashelp.class;
+run;
+```
+
+(keep = …) or (drop = …) → Applied at dataset level.
+
+Useful when combining datasets or chaining steps.
+
+### KEEP/DROP vs KEEP=/DROP=
+
+KEEP/DROP: control **output only** (all inputs still available while computing).
+
+Don’t mix KEEP and DROP for the same target — pick one.
+
+KEEP=/DROP= on **input**: reduces columns brought into PDV (can speed I/O).
+
+KEEP=/DROP= on **output**: limits columns saved at creation time.
+
+***
+
+PART B. MANAGE DATA (35-40%)
+----------------------------
+
+## 7. Sort observations in a SAS data set
+
+This chapter shows how to reorder data, create sorted copies, and remove duplicates.
+
+### PROC SORT
+
+PROC SORT: reorders rows by one or more variables.
+
+```{sas}
+proc sort data = sashelp.class out = work.class_sorted;
+    by age;
+run;
+```
+
+data = sashelp.class → Input dataset.
+
+out=work.class_sorted → Sorted output dataset in `work`. If no output dataset is given, the existing dataset will be replaced by its sorted version (***sorting in place***).
+
+by age; → Sorting by age (by default in **ascending** order).
+
+### DESCENDING
+
+DESCENDING: sorts in **descending** (reverse to the default) order.
+
+```{sas}
+proc sort data = sashelp.class out = work.class_desc;
+    by descending age;
+run;
+```
+
+by descending age; → The highest age first.
+
+Can combine with other variables: `BY descending age name;`.
+
+### NODUPKEY
+
+NODUPKEY: removes duplicates (keeps only unique rows).
+
+```{sas}
+proc sort data = sashelp.class out = work.class_nodup;
+    by name;
+    nodupkey;
+run;
+```
+
+nodupkey; → Removes duplicate values of `BY <variable(s)>`.
+
+by name; → Checks duplicates on name. If no BY is given, removes exact duplicate rows.
+
+***
+
+## 8. Conditionally execute SAS statements
+
+This chapter is about making SAS code “decision-aware.” Instead of applying the same action to all rows, you can tell SAS: "If this condition is true → do this, otherwise → do that". You’ll use IF–THEN/ELSE for simple conditions, and DO…END for when multiple statements must be executed together.
+
+### IF-THEN
+
+IF-THEN: executes one statement if condition is true.
+
+```{sas}
+data work.age_flag;
+    set sashelp.class;
+    if age < 13 then group = "Child";
+run;
+```
+
+if age < 13 then group = "Child"; → Assigns "Child" only when condition holds.
+
+### IF-THEN-ELSE
+
+IF-THEN-ELSE: Chooses between two alternatives.
+
+```{sas}
+data work.age_flag2;
+    set sashelp.class;
+    if age < 13 then group = "Child";
+    else group = "Teen";
+run;
+```
+
+else → Ensures exactly one branch executes.
+
+### IF-THEN-ELSE IF
+
+IF-THEN-ELSE-IF: Multiple conditions (***cascading logic***).
+
+```{sas}
+data work.age_groups;
+    set sashelp.class;
+    if age < 13 then group = "Child";
+    else if age < 16 then group = "Teen";
+    else group = "Young adult";
+run;
+```
+
+else if → Checks additional conditions in order.
+
+### DO-END
+
+DO-END: groups several statements under one condition.
+
+```{sas}
+data work.flags;
+    set sashelp.class;
+    if age < 13 then do;
+        group = "Child";
+        note = "Pre-teen student";
+    end;
+run;
+```
+
+do … end; → Groups multiple statements controlled by one condition. DO groups multiple SAS statements so they act as a single conditional block. Without DO…END, only the first statement belongs to the IF; the rest will run regardless.
+
+***Flag***: a widely accepted and almost universal nickname in programming, data management, and applied statistics for a *binary* indicator variable. In statistics we might also call it a ***dummy variable*** (common in regression modeling), or ***indicator variable*** (the more formal mathematical term). In SAS, R, Python, SQL, and even clinical data standards (like CDISC/SDTM used in pharma), you’ll often see variables called things like: `smoke_flag` (1 = smoker; 0 = not), `missing_flag` (1 = missing; 0 = not), etc. It comes from the idea of a signal flag: either up (1/true) or down (0/false).
+
+***
+
+## 9. Use assignment statements in the DATA step
+
+***Assignment statements***: statements used to create or modify variables. They allow you to assign constants, expressions, or computed values to variables. This is one of the most common tasks in the DATA step.
+
+### Creating a new variable
+
+Assign directly with `=`:
+
+```{sas}
+data work.bmi_calc;
+    set sashelp.class;
+    bmi = (weight / (height**2)) * 703;
+run;
+```
+
+bmi = (weight / (height**2)) * 703; → Computes BMI and stores it in the new variable `bmi`.
+
+### Modifying an existing variable
+
+Overwrite the variable's value:
+
+```{sas}
+data work.age_plus;
+    set sashelp.class;
+    age = age + 1;
+run;
+```
+
+age = age + 1; → Increases age by 1 for every record.
+
+### Assigning constant values
+
+```{sas}
+data work.flags;
+    set sashelp.class;
+    school = "Lincoln";
+    pass = 1;
+run;
+```
+
+school = "Lincoln"; → Every row gets the same text.
+
+pass = 1; → Every row gets the same numeric value.
+
+### Assigning date constants
+
+```{sas}
+data work.enroll;
+    set sashelp.class;
+    start_date = '01JAN2020'd;
+run;
+```
+
+'01JAN2020'd → SAS date literal (number of days since 01JAN1960). Stored as numeric, displayed with default DATE format.
+
+***
+
+## 10. Modify variable attributes using options and statements in the DATA step 
+
+This chapter is about changing how variables are defined, named, and displayed. In SAS, you can modify variable attributes with statements (inside a DATA step) or with dataset options.
+
+### RENAME=
+
+RENAME=: changes variable names when reading or writing datasets.
+
+```{sas}
+data work.renamed;
+    set sashelp.class (rename=(age=age_years));
+run;
+```
+
+Use when you need clearer or standardized variable names.
+
+### LABEL
+
+LABEL: assigns descriptive text to variables.
+
+```{sas}
+data work.labeled;
+    set sashelp.class;
+    label age = "Age in years";
+run;
+
+proc print data = work.labeled label;
+run;
+```
+
+Labels make output more readable in reports.
+
+### FORMAT
+
+FORMAT: controls how SAS *displays* variable values.
+
+```{sas}
+data work.formatted;
+    set sashelp.class;
+    format age 3. height 5.1;
+run;
+```
+
+The value in memory doesn’t change, only how it appears.
+
+### FORMAT vs. INFORMAT
+
+***Informat***: tells SAS how *to read raw data into memory*.
+
+You can apply an informat directly in an INPUT statement, or assign it with the INFORMAT statement.
+
+FORMAT: tells SAS how to *display* values once stored.
+
+```{sas}
+data work.dates;
+    informat dob mmddyy10.;   /* INFORMAT statement assigns rule */
+    input dob;                /* INPUT reads raw text */
+    format dob date9.;        /* FORMAT controls display */
+    datalines;
+08/23/2025
+01/01/2000
+;
+run;
+
+proc print data=work.dates;
+run;
+```
+
+informat dob mmddyy10.; → INFORMAT statement: tells SAS how to interpret raw date text.
+
+input dob; → Reads the text into memory using that informat.
+
+format dob date9.; → FORMAT: displays it as 23AUG2025.
+
+🔑 Memory trick: 
+
+- ***Informat*** - how data comes **in**
+- ***format*** - how data is **format**ted for output
+
+### LENGTH
+
+LENGTH: defines the number of bytes a variable can use.
+
+```{sas}
+data work.length_demo;
+    length gender $1;
+    input name $ gender $;
+    datalines;
+Alice F
+Bob M
+;
+run;
+```
+
+Use to control storage and avoid truncation.
+
+***
+
+## 11. Accumulate sub-totals and totals using DATA step statements
+
+We build per-group totals and counts in a DATA step with three tools: BY (grouping), FIRST./LAST. (group boundaries), and RETAIN/SUM (remember + accumulate).
+
+### BY...FIRST./LAST...RETAIN/SUM
+
+BY: Defines subgroups for processing; data must be sorted (PROC SORT) by the BY variable(s). Used for for per-segment KPIs (e.g., totals by smoking status, site, cohort).
+
+FIRST./LAST.: Creates automatic temporary variables when BY is active: 
+
+- FIRST.var = 1 - at the first row of a group
+- LAST.var = 1 - at the last row
+
+Resets accumulators at the group’s start and write results at the group’s end.
+
+In a DATA step, variables re-initialize each row. RETAIN keeps their values across rows. The SUM statement is the shorthand form x + y; (not the SUM() function). The SUM statement implicitly RETAINs the target variable and treats missing adds as 0, so you often don’t need to write RETAIN explicitly when you use it.
+
+```{sas}
+proc sort data = birthweight out = work.bw_by_smoke;
+    by smoke;
+run;
+
+data work.by_subtotals;
+    set work.bw_by_smoke;
+    by smoke;
+    if first.smoke then do; n = 0; total_bwt = 0; end;    /* reset at group start */
+    n + 1;                                                /* SUM statement: counts rows in group */
+    total_bwt + bwt;                                      /* SUM statement: sums within group */
+    if last.smoke then output;                            
+    keep smoke n total_bwt;
+run;
+```
+
+Therefore, here one SAS snippet is the full recipe and it already uses all three items from this chapter:
+
+- `by smoke;` → BY (creates groups)
+- `first.smoke` / `last.smoke` → FIRST./LAST. (boundaries)
+- `n + 1;` / `total_bwt + bwt;` → SUM statements (implicit RETAIN)
+
+***
+
+## 12. Use SAS functions to manipulate character data, numeric data, and SAS date values
+
+This chapter is about ***SAS functions*** - built-in tools that let you transform character strings, perform numeric calculations, and work with SAS date values. Mastering these functions is essential for exam tasks, because they often appear in combination with DATA step logic.
+
+### SCAN, SUBSTR, TRIM, COMPRESS, UPCASE, LOWCASE
+
+These character functions let you manipulate text.
+
+SCAN: extracts words.
+
+SUBSTR: returns part of a string.
+
+TRIM: removes trailing blanks.
+
+COMPRESS: removes chosen characters.
+
+UPCASE/LOWCASE: converts case.
+
+```{sas}
+data charfuncs;
+    text = "Haifa, Israel";
+    word2 = scan(text, 2, ",");
+    part  = substr(text, 1, 5);
+    no_comma = compress(text, ",");
+    up = upcase(text);
+    low = lowcase(text);
+run;
+```
+
+### SUM, MEAN, RAND, SMALLEST, LARGEST, ROUND, INT
+
+Numeric functions which simplify calculations.
+
+SUM, MEAN: aggregate values safely (ignore missing).
+
+RAND: generates random numbers.
+
+SMALLEST/LARGEST: picks extremes.
+
+ROUND, INT: control precision.
+
+```{sas}
+data numfuncs;
+    a = 3; b = .; c = 7;
+    total = sum(a, b, c);
+    avg   = mean(a, b, c);
+    rnum  = rand("uniform");
+    small = smallest(1, a, c);
+    large = largest(1, a, c);
+    r10   = round(15.67, 10);
+    intpart = int(15.67);
+run;
+```
+
+### MDY, TODAY, DATE, TIME
+
+SAS stores dates as days since Jan 1, 1960. These functions create and return date values.
+
+```{sas}
+data datefuncs;
+    mydate = mdy(8, 23, 2025);    /* Aug 23, 2025 */
+    todayd = today();
+    datenum = date();
+    timenum = time();
+    format mydate todayd datenum date9. timenum time8.;
+run;
+```
+
+### YEAR, QTR, MONTH, DAY
+
+Extract calendar parts from a SAS date.
+
+```{sas}
+data extract;
+    mydate = '23aug2025'd;
+    yearv = year(mydate);
+    qtrv = qtr(mydate);
+    monthv = month(mydate);
+    dayv = day(mydate);
+run;
+```
+
+### INTCK, INTNX, YRDIF
+
+Interval functions which compute gaps and shift dates.
+
+INTCK: counts intervals.
+
+INTNX: advances to interval boundaries.
+
+YRDIF: exact years between dates.
+
+```{sas}
+data intervals;
+    start = '01jan2020'd;
+    stop = '23aug2025'd;
+    years = intck('year', start, stop);
+    nextq = intnx('qtr', start, 1, 'b');
+    age = yrdif(start, stop, 'actual');
+    format start stop nextq date9.;
+run;
+```
+
+### Variable lists (OF, :, –, ––)
+
+Variable lists allow concise referencing.
+
+OF operator: for non-consecutive list.
+
+Colon (:): variables with same prefix.
+
+Dash (-): consecutive variables in order.
+
+Double dash (--): variables in position order.
+
+```{sas}
+data scores;
+    input s1 s2 s3 s4;
+    total1 = sum(of s1 s3);
+    total2 = sum(of s:);       /* all vars starting with s */
+    total3 = sum(of s1-s4);    /* consecutive */
+datalines;
+10 20 30 40
+;
+run;
+```
+
+***
+
+## 13. Use SAS functions to convert character data to numeric and vice versa
+
+This chapter is about handling data type conversion. SAS variables are either character or numeric. Sometimes you must change between them: implicitly (***automatic conversion***) or explicitly (using INPUT or PUT).
+
+### Automatic conversion
+
+***Automatic conversion*** happens when SAS needs one type but gets another. SAS will try to convert for you, but it may create warnings in the log:
+
+- Character → numeric: SAS tries to interpret the string as a number.
+- Numeric → character: SAS writes the number as text with BEST12. format.
+
+```{sas}
+data work.auto;
+    x = "25";         /* character */
+    y = x + 5;        /* automatic char → num */
+    z = 10;           /* numeric */
+    c = z || "kg";    /* automatic num → char in concatenation */
+run;
+```
+
+Avoid relying on automatic conversion; use INPUT/PUT for control.
+
+### INPUT
+
+INPUT: explicitly converts *character → numeric* using an informat (`numvar = input(charvar, informat.);`).
+
+```{sas}
+data work.input_demo;
+    char_age = "45";
+    num_age = input(char_age, 8.); 
+run;
+```
+
+The data are stored as text but should be numeric for calculations.
+
+### PUT
+
+PUT: explicitly converts *numeric → character* using a format (`charvar = put(numvar, format.);`).
+
+```{sas}
+data work.put_demo;
+    num_id = 1234;
+    char_id = put(num_id, 8.); 
+run;
+```
+
+Used when we need numbers as labels, IDs, or part of strings.
+
+***
